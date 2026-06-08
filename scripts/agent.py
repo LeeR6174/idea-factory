@@ -44,12 +44,16 @@ async def main():
     TITLE: {issue_title}
     BODY: {issue_body}
     
-    CRITICAL INSTRUCTION: You must implement this application as a PURE client-side static web application (HTML, CSS, JavaScript).
+    CRITICAL INSTRUCTION: You must implement this application as a PURE client-side static web application (HTML, CSS, JavaScript) that fully supports PWA (Progressive Web App) specifications so it can be installed on mobile devices.
     - Do NOT write any backend server code (no Python, no Node.js server, no SQLite database).
     - Save all data in the browser using `localStorage` or `indexedDB`.
-    - Create ALL files inside the specific directory: `{apps_dir}` (e.g. `{apps_dir}/index.html`, `{apps_dir}/style.css`, `{apps_dir}/script.js` etc.)
+    - Create ALL files inside the specific directory: `{apps_dir}` (e.g. `{apps_dir}/index.html`, `{apps_dir}/manifest.json`, `{apps_dir}/service-worker.js` etc.)
     - Do not read or write files outside this directory.
     - Write the files in a SINGLE tool call if possible, or at most 2 tool calls, due to strict API limits.
+    - **PWA Requirements**:
+      1. Create a `manifest.json` containing: `name`, `short_name`, `start_url` (must be `./index.html`), `display` ("standalone"), `background_color`, `theme_color`, and a reference to icons `./icon-192.png` and `./icon-512.png` (these icons will be provisioned automatically, so just reference them in the manifest).
+      2. Create a basic `service-worker.js` that implements a caching strategy (e.g. Cache First or Stale-While-Revalidate) for the app's local files (like `index.html`, `manifest.json`, and any external libraries if used).
+      3. In `index.html`, add `<link rel="manifest" href="manifest.json">`, standard mobile viewport configurations (including `viewport-fit=cover`), Apple mobile web app meta tags (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`), and Javascript code to register `./service-worker.js` on load.
     
     DESIGN SYSTEM INSTRUCTION (Apple Style):
     You must strictly follow the Apple design system guidelines (summarized below, full spec in `DESIGNS/DESIGN-apple.md`):
@@ -81,6 +85,18 @@ async def main():
 
     # If successful, register the app in apps.json
     if agent_success:
+        # Copy default PWA icons to the new app directory
+        import shutil
+        for icon_name in ["icon-192.png", "icon-512.png"]:
+            src_icon = icon_name
+            dst_icon = os.path.join(apps_dir, icon_name)
+            if os.path.exists(src_icon):
+                try:
+                    shutil.copy(src_icon, dst_icon)
+                    print(f"Copied PWA icon {src_icon} to {dst_icon}")
+                except Exception as e:
+                    print(f"Warning: could not copy icon {src_icon}: {e}")
+
         apps_json_path = "apps.json"
         
         # Extract a short description from the issue body

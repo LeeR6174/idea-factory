@@ -1,0 +1,22 @@
+{
+  "name": "昼寝タイマー & ログ - SiestaHub",
+  "short_name": "昼寝タイマー",
+  "description": "パワーナップからディープスリープまで、昼寝専用タイマーとスッキリ度の統計管理アプリ。",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#0066cc",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
