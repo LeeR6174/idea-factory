@@ -1,18 +1,58 @@
-name: Idea Factory
+name: Issue Agent Workflow
 
 on:
   issues:
     types: [opened]
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
+permissions:
+  contents: write
+  pull-requests: write
 
+jobs:
+  create-issue-pr:
+    runs-on: ubuntu-latest
+    env:
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+      ISSUE_BODY: ${{ github.event.issue.body }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Show Issue
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create issue document
         run: |
-          echo "Title:"
-          echo "${{ github.event.issue.title }}"
-          echo ""
-          echo "Body:"
-          echo "${{ github.event.issue.body }}"
+          mkdir -p docs/issues
+          FILE_PATH="docs/issues/issue-${ISSUE_NUMBER}.md"
+          
+          echo "# Issue #${ISSUE_NUMBER}" > "$FILE_PATH"
+          echo "" >> "$FILE_PATH"
+          echo "## Title" >> "$FILE_PATH"
+          echo "$ISSUE_TITLE" >> "$FILE_PATH"
+          echo "" >> "$FILE_PATH"
+          echo "## Body" >> "$FILE_PATH"
+          echo "$ISSUE_BODY" >> "$FILE_PATH"
+
+      - name: Commit and Create Pull Request
+        run: |
+          # Gitの設定
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # ブランチの作成と切り替え
+          BRANCH_NAME="issue-${ISSUE_NUMBER}"
+          git checkout -b "$BRANCH_NAME"
+          
+          # ファイルの追加とコミット
+          git add docs/issues/
+          git commit -m "docs: add issue-${ISSUE_NUMBER}.md"
+          
+          # リモートへのプッシュ
+          git push origin "$BRANCH_NAME"
+          
+          # GitHub CLIによるPR作成
+          gh pr create \
+            --title "docs: add issue-${ISSUE_NUMBER}" \
+            --body "This PR was automatically created from issue #${ISSUE_NUMBER}." \
+            --head "$BRANCH_NAME" \
+            --base main
