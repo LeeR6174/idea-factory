@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siesta-hub-v1';
+const CACHE_NAME = 'siesta-hub-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

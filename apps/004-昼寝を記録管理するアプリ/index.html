@@ -441,6 +441,113 @@
       height: 260px;
       width: 100%;
     }
+
+    /* Vibration & Notification status panel */
+    .status-panel {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--hairline-soft);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .status-row-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .status-label-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--body-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: var(--rounded-sm);
+      text-transform: uppercase;
+    }
+
+    .status-badge.supported {
+      background-color: rgba(76, 217, 100, 0.1);
+      color: #4cd964;
+    }
+
+    .status-badge.unsupported {
+      background-color: rgba(255, 59, 48, 0.1);
+      color: #ff3b30;
+    }
+
+    .status-btn {
+      margin: 0;
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: var(--rounded-pill);
+      background-color: var(--canvas-parchment);
+      border: 1px solid var(--hairline-soft);
+      color: var(--body);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .status-btn:hover {
+      background-color: #e8e8ed;
+    }
+
+    .status-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Modal Backdrop */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    /* Modal Card */
+    .modal-card {
+      background-color: var(--canvas);
+      border: 1px solid var(--hairline-soft);
+      border-radius: var(--rounded-lg);
+      max-width: 90%;
+      width: 320px;
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .modal-emoji {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: inline-block;
+      animation: pulse-emoji 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-emoji {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
   </style>
 </head>
 <body>
@@ -489,6 +596,22 @@
         <div class="btn-row">
           <button class="btn btn-primary" id="start-btn">スタート</button>
           <button class="btn btn-secondary" id="reset-btn">リセット</button>
+        </div>
+
+        <!-- Vibration & Notification Settings Panel -->
+        <div class="status-panel">
+          <div class="status-row-item">
+            <span class="status-label-text">
+              <span>📳</span> バイブレーション: <span id="vibrate-badge" class="status-badge">判定中...</span>
+            </span>
+            <button class="status-btn" id="test-vibrate-btn" type="button">テスト</button>
+          </div>
+          <div class="status-row-item">
+            <span class="status-label-text">
+              <span>🔔</span> バックグラウンド通知: <span id="notification-badge" class="status-badge">判定中...</span>
+            </span>
+            <button class="status-btn" id="enable-notification-btn" type="button" style="display: none;">許可する</button>
+          </div>
         </div>
       </div>
 
@@ -578,6 +701,7 @@
   <script>
     // State management
     let timerInterval = null;
+    let alarmInterval = null;
     let totalSeconds = 1200; // default 20 min
     let secondsLeft = 1200;
     let timerRunning = false;
@@ -631,27 +755,213 @@
       }
     }
 
+    // Alarm sound & Vibration loop
+    function playAlarmAndVibrate() {
+      stopAlarmAndVibrate();
+
+      alarmSound.currentTime = 0;
+      alarmSound.play().catch(err => console.log('Audio play failed:', err));
+
+      if ('vibrate' in navigator) {
+        navigator.vibrate([400, 200, 400, 200, 400]);
+      }
+
+      alarmInterval = setInterval(() => {
+        alarmSound.currentTime = 0;
+        alarmSound.play().catch(err => console.log('Audio play failed:', err));
+
+        if ('vibrate' in navigator) {
+          navigator.vibrate([400, 200, 400, 200, 400]);
+        }
+      }, 3000);
+    }
+
+    function stopAlarmAndVibrate() {
+      if (alarmInterval) {
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+      }
+      alarmSound.pause();
+      alarmSound.currentTime = 0;
+      if ('vibrate' in navigator) {
+        navigator.vibrate(0);
+      }
+    }
+
+    // Modal UI references & display logic
+    const modal = document.getElementById('completion-modal');
+    const modalContent = modal.querySelector('.modal-card');
+    const modalSaveBtn = document.getElementById('modal-save-btn');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    let modalSelectedRating = 3;
+
+    // Handle modal rating stars interaction
+    const modalStars = document.querySelectorAll('#modal-rating-stars .star');
+    modalStars.forEach(star => {
+      star.addEventListener('click', () => {
+        modalSelectedRating = parseInt(star.dataset.value);
+        modalStars.forEach(s => {
+          if (parseInt(s.dataset.value) <= modalSelectedRating) {
+            s.classList.add('selected');
+          } else {
+            s.classList.remove('selected');
+          }
+        });
+      });
+    });
+
+    function showCompletionModal() {
+      // Reset modal defaults
+      modalSelectedRating = 3;
+      modalStars.forEach(s => {
+        if (parseInt(s.dataset.value) <= 3) {
+          s.classList.add('selected');
+        } else {
+          s.classList.remove('selected');
+        }
+      });
+      document.getElementById('modal-nap-location').value = 'desk';
+      document.getElementById('modal-nap-notes').value = '';
+
+      modal.style.display = 'flex';
+      modal.offsetHeight; // force layout reflow
+      modal.style.opacity = '1';
+      modalContent.style.transform = 'scale(1)';
+    }
+
+    function hideCompletionModal() {
+      modal.style.opacity = '0';
+      modalContent.style.transform = 'scale(0.9)';
+      setTimeout(() => {
+        modal.style.display = 'none';
+      }, 300);
+    }
+
+    modalSaveBtn.addEventListener('click', () => {
+      stopAlarmAndVibrate();
+      hideCompletionModal();
+      
+      const duration = Math.round(totalSeconds / 60);
+      const location = document.getElementById('modal-nap-location').value;
+      const locationSelect = document.getElementById('modal-nap-location');
+      const locationName = locationSelect.options[locationSelect.selectedIndex].text;
+      const notes = document.getElementById('modal-nap-notes').value;
+
+      const newLog = {
+        date: new Date().toISOString(),
+        duration,
+        location,
+        locationName,
+        rating: modalSelectedRating,
+        notes
+      };
+
+      const logs = getLogs();
+      logs.unshift(newLog);
+      saveLogs(logs);
+      
+      renderLogs();
+      initCharts();
+      
+      alert('昼寝記録を保存しました。');
+    });
+
+    modalCloseBtn.addEventListener('click', () => {
+      stopAlarmAndVibrate();
+      hideCompletionModal();
+    });
+
+    // Background notifications logic
+    function showBackgroundNotification(title, body) {
+      if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(title, {
+            body: body,
+            icon: 'icon-192.png',
+            vibrate: [300, 100, 300, 100, 300],
+            tag: 'siesta-nap-timer',
+            renotify: true
+          });
+        });
+      }
+    }
+
+    // Vibration & Notification status panel UI
+    const vibrateBadge = document.getElementById('vibrate-badge');
+    const notificationBadge = document.getElementById('notification-badge');
+    const testVibrateBtn = document.getElementById('test-vibrate-btn');
+    const enableNotificationBtn = document.getElementById('enable-notification-btn');
+
+    function initStatusPanel() {
+      if ('vibrate' in navigator) {
+        vibrateBadge.textContent = '対応';
+        vibrateBadge.className = 'status-badge supported';
+      } else {
+        vibrateBadge.textContent = '非対応';
+        vibrateBadge.className = 'status-badge unsupported';
+      }
+      updateNotificationStatus();
+    }
+
+    function updateNotificationStatus() {
+      if (!('Notification' in window)) {
+        notificationBadge.textContent = '非対応';
+        notificationBadge.className = 'status-badge unsupported';
+        enableNotificationBtn.style.display = 'none';
+        return;
+      }
+
+      if (Notification.permission === 'granted') {
+        notificationBadge.textContent = '許可済';
+        notificationBadge.className = 'status-badge supported';
+        enableNotificationBtn.style.display = 'none';
+      } else if (Notification.permission === 'denied') {
+        notificationBadge.textContent = '拒否';
+        notificationBadge.className = 'status-badge unsupported';
+        enableNotificationBtn.style.display = 'none';
+      } else {
+        notificationBadge.textContent = '未許可';
+        notificationBadge.className = 'status-badge unsupported';
+        enableNotificationBtn.style.display = 'inline-block';
+      }
+    }
+
+    testVibrateBtn.addEventListener('click', () => {
+      if ('vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200]);
+        testVibrateBtn.textContent = '振動中...';
+        setTimeout(() => {
+          testVibrateBtn.textContent = 'テスト';
+        }, 1000);
+      } else {
+        alert('このデバイス/ブラウザはバイブレーション機能に対応していません。');
+      }
+    });
+
+    enableNotificationBtn.addEventListener('click', () => {
+      Notification.requestPermission().then(permission => {
+        updateNotificationStatus();
+        if (permission === 'granted') {
+          showBackgroundNotification('通知が許可されました', '昼寝タイマー終了時にこの通知でお知らせします。');
+        }
+      });
+    });
+
     function timerFinished() {
       timerState.textContent = 'DONE!';
       startBtn.textContent = 'スタート';
       timerRunning = false;
       setProgress(0);
       
-      // Sound alert
-      alarmSound.play();
-
-      // Vibration alert (Apple device mock logic, Web Vibration standard)
-      if ('vibrate' in navigator) {
-        navigator.vibrate([200, 100, 200, 100, 200]);
-      }
-      
-      const minsTaken = Math.round(totalSeconds / 60);
-      document.getElementById('nap-duration').value = minsTaken;
-      alert('昼寝時間が終了しました。記録を保存してください。');
+      showBackgroundNotification('昼寝タイマー終了', 'すっきりと目覚められましたか？記録を保存しましょう！');
+      playAlarmAndVibrate();
+      showCompletionModal();
     }
 
     function resetTimer() {
       clearInterval(timerInterval);
+      stopAlarmAndVibrate();
+      hideCompletionModal();
       secondsLeft = totalSeconds;
       timerRunning = false;
       timerState.textContent = 'READY';
@@ -877,6 +1187,7 @@
 
     resetTimer();
     renderLogs();
+    initStatusPanel();
 
     // Register Service Worker
     if ('serviceWorker' in navigator) {
@@ -887,5 +1198,48 @@
       });
     }
   </script>
+  <!-- Timer Completion Custom Modal -->
+  <div id="completion-modal" class="modal-backdrop">
+    <div class="modal-card" style="width: 340px; padding: 24px 20px;">
+      <span class="modal-emoji" style="margin-bottom: 8px;">💤</span>
+      <h3 style="font-size: 20px; font-weight: 600; color: var(--ink); margin-bottom: 4px;">お疲れ様でした！</h3>
+      <p style="font-size: 13px; color: var(--body-muted); margin-bottom: 16px;">昼寝タイマーが終了しました。</p>
+      
+      <!-- Seamless Record Form -->
+      <div style="text-align: left; background-color: var(--canvas-parchment); border-radius: var(--rounded-md); padding: 16px; margin-bottom: 20px; border: 1px solid var(--hairline-soft);">
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label style="font-size: 11px; margin-bottom: 4px;">すっきり度</label>
+          <div class="rating-container" id="modal-rating-stars">
+            <span class="star selected" data-value="1">★</span>
+            <span class="star selected" data-value="2">★</span>
+            <span class="star selected" data-value="3">★</span>
+            <span class="star" data-value="4">★</span>
+            <span class="star" data-value="5">★</span>
+          </div>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="modal-nap-location" style="font-size: 11px; margin-bottom: 4px;">場所</label>
+          <select id="modal-nap-location" style="padding: 8px 12px; font-size: 13px;">
+            <option value="bed">ベッド</option>
+            <option value="sofa">ソファ</option>
+            <option value="desk" selected>デスク・机</option>
+            <option value="floor">床・コタツ</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="modal-nap-notes" style="font-size: 11px; margin-bottom: 4px;">メモ</label>
+          <input type="text" id="modal-nap-notes" placeholder="（例：すっきり起きられた）" style="padding: 8px 12px; font-size: 13px;">
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="modal-save-btn" class="btn btn-primary" style="width: 100%; padding: 12px;">記録を保存する</button>
+        <button id="modal-close-btn" class="btn btn-secondary" style="width: 100%; padding: 10px; font-size: 13px; border-color: transparent; background-color: transparent;">記録せずに閉じる</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
