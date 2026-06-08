@@ -571,47 +571,24 @@
       <!-- Timer Card -->
       <div class="card">
         <h3 class="card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-          昼寝タイマー
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 12"></polyline></svg>
+          昼寝ストップウォッチ
         </h3>
         
         <div class="timer-section">
           <svg class="progress-ring" width="200" height="200">
             <circle class="progress-ring__circle-bg" stroke="var(--canvas-parchment)" stroke-width="6" fill="transparent" r="88" cx="100" cy="100"/>
-            <circle id="timer-progress" class="progress-ring__circle" stroke="var(--primary)" stroke-width="6" stroke-linecap="round" fill="transparent" r="88" cx="100" cy="100"/>
+            <circle id="stopwatch-progress" class="progress-ring__circle" stroke="var(--primary)" stroke-width="6" stroke-linecap="round" fill="transparent" r="88" cx="100" cy="100"/>
           </svg>
           <div class="timer-display">
-            <span class="time-left" id="time-left">20:00</span>
-            <span class="timer-state" id="timer-state">Ready</span>
+            <span class="time-left" id="stopwatch-time">00:00</span>
+            <span class="timer-state" id="stopwatch-state">READY</span>
           </div>
-        </div>
-
-        <div class="timer-presets">
-          <button class="preset-btn" data-time="900">15分</button>
-          <button class="preset-btn active" data-time="1200">20分</button>
-          <button class="preset-btn" data-time="1800">30分</button>
-          <button class="preset-btn" data-time="10">テスト (10秒)</button>
         </div>
 
         <div class="btn-row">
-          <button class="btn btn-primary" id="start-btn">スタート</button>
-          <button class="btn btn-secondary" id="reset-btn">リセット</button>
-        </div>
-
-        <!-- Vibration & Notification Settings Panel -->
-        <div class="status-panel">
-          <div class="status-row-item">
-            <span class="status-label-text">
-              <span>📳</span> バイブレーション: <span id="vibrate-badge" class="status-badge">判定中...</span>
-            </span>
-            <button class="status-btn" id="test-vibrate-btn" type="button">テスト</button>
-          </div>
-          <div class="status-row-item">
-            <span class="status-label-text">
-              <span>🔔</span> バックグラウンド通知: <span id="notification-badge" class="status-badge">判定中...</span>
-            </span>
-            <button class="status-btn" id="enable-notification-btn" type="button" style="display: none;">許可する</button>
-          </div>
+          <button class="btn btn-primary" id="start-btn">昼寝スタート</button>
+          <button class="btn btn-secondary" id="reset-btn" style="display: none;">キャンセル</button>
         </div>
       </div>
 
@@ -695,96 +672,87 @@
     </div>
   </main>
 
-  <!-- Sound alert on complete -->
-  <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-120.wav" preload="auto"></audio>
-
   <script>
     // State management
-    let timerInterval = null;
-    let alarmInterval = null;
-    let totalSeconds = 1200; // default 20 min
-    let secondsLeft = 1200;
-    let timerRunning = false;
+    let stopwatchInterval = null;
+    let stopwatchRunning = false;
+    let startTime = null;
+    let elapsedSeconds = 0;
     let selectedRating = 3;
+    let modalSelectedRating = 3;
 
     // Progress Ring setup
-    const circle = document.getElementById('timer-progress');
+    const circle = document.getElementById('stopwatch-progress');
     const radius = circle.r.baseVal.value;
     const circumference = radius * 2 * Math.PI;
     circle.style.strokeDasharray = `${circumference} ${circumference}`;
-    circle.style.strokeDashoffset = 0;
+    circle.style.strokeDashoffset = circumference;
 
     function setProgress(percent) {
-      const offset = circumference - (percent / 100 * circumference);
+      const offset = circumference - ((percent % 100) / 100 * circumference);
       circle.style.strokeDashoffset = offset;
     }
 
-    // Timer UI references
-    const timeLeftDisplay = document.getElementById('time-left');
-    const timerState = document.getElementById('timer-state');
+    // Stopwatch UI references
+    const timeDisplay = document.getElementById('stopwatch-time');
+    const stopwatchState = document.getElementById('stopwatch-state');
     const startBtn = document.getElementById('start-btn');
     const resetBtn = document.getElementById('reset-btn');
-    const alarmSound = document.getElementById('alarm-sound');
 
-    function updateTimerDisplay() {
-      const mins = Math.floor(secondsLeft / 60);
-      const secs = secondsLeft % 60;
-      timeLeftDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-      setProgress((secondsLeft / totalSeconds) * 100);
+    function updateStopwatchDisplay() {
+      const mins = Math.floor(elapsedSeconds / 60);
+      const secs = elapsedSeconds % 60;
+      timeDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      setProgress((elapsedSeconds / 60) * 100);
     }
 
-    function startTimer() {
-      if (timerRunning) {
-        clearInterval(timerInterval);
-        timerState.textContent = 'PAUSED';
-        startBtn.textContent = 'スタート';
-        timerRunning = false;
+    function toggleStopwatch() {
+      if (stopwatchRunning) {
+        stopStopwatch(true);
       } else {
-        timerState.textContent = 'NAPPING';
-        startBtn.textContent = '一時停止';
-        timerRunning = true;
-        timerInterval = setInterval(() => {
-          secondsLeft--;
-          updateTimerDisplay();
-          
-          if (secondsLeft <= 0) {
-            clearInterval(timerInterval);
-            timerFinished();
-          }
-        }, 1000);
+        startStopwatch();
       }
     }
 
-    // Alarm sound & Vibration loop
-    function playAlarmAndVibrate() {
-      stopAlarmAndVibrate();
+    function startStopwatch() {
+      stopwatchRunning = true;
+      startTime = Date.now();
+      elapsedSeconds = 0;
+      stopwatchState.textContent = 'MEASURING';
+      stopwatchState.style.color = 'var(--primary)';
+      startBtn.textContent = '目覚めた！';
+      startBtn.style.backgroundColor = '#ff9500';
+      resetBtn.style.display = 'inline-block';
+      updateStopwatchDisplay();
 
-      alarmSound.currentTime = 0;
-      alarmSound.play().catch(err => console.log('Audio play failed:', err));
-
-      if ('vibrate' in navigator) {
-        navigator.vibrate([400, 200, 400, 200, 400]);
-      }
-
-      alarmInterval = setInterval(() => {
-        alarmSound.currentTime = 0;
-        alarmSound.play().catch(err => console.log('Audio play failed:', err));
-
-        if ('vibrate' in navigator) {
-          navigator.vibrate([400, 200, 400, 200, 400]);
-        }
-      }, 3000);
+      stopwatchInterval = setInterval(() => {
+        elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+        updateStopwatchDisplay();
+      }, 1000);
     }
 
-    function stopAlarmAndVibrate() {
-      if (alarmInterval) {
-        clearInterval(alarmInterval);
-        alarmInterval = null;
+    function stopStopwatch(saveRecord = true) {
+      clearInterval(stopwatchInterval);
+      stopwatchRunning = false;
+      stopwatchState.textContent = 'READY';
+      stopwatchState.style.color = 'var(--body-muted)';
+      startBtn.textContent = '昼寝スタート';
+      startBtn.style.backgroundColor = 'var(--primary)';
+      resetBtn.style.display = 'none';
+
+      if (saveRecord && elapsedSeconds > 0) {
+        const mins = Math.max(1, Math.round(elapsedSeconds / 60));
+        showCompletionModal(mins);
+      } else {
+        elapsedSeconds = 0;
+        updateStopwatchDisplay();
+        setProgress(0);
       }
-      alarmSound.pause();
-      alarmSound.currentTime = 0;
-      if ('vibrate' in navigator) {
-        navigator.vibrate(0);
+    }
+
+    function cancelStopwatch() {
+      if (confirm('現在の計測を破棄しますか？')) {
+        stopStopwatch(false);
       }
     }
 
@@ -793,7 +761,7 @@
     const modalContent = modal.querySelector('.modal-card');
     const modalSaveBtn = document.getElementById('modal-save-btn');
     const modalCloseBtn = document.getElementById('modal-close-btn');
-    let modalSelectedRating = 3;
+    let finalNapDuration = 0;
 
     // Handle modal rating stars interaction
     const modalStars = document.querySelectorAll('#modal-rating-stars .star');
@@ -810,8 +778,14 @@
       });
     });
 
-    function showCompletionModal() {
-      // Reset modal defaults
+    function showCompletionModal(durationMins) {
+      finalNapDuration = durationMins;
+
+      const minutesText = document.getElementById('modal-nap-duration-text');
+      if (minutesText) {
+        minutesText.innerHTML = `昼寝時間: <strong style="font-size: 18px; color: var(--primary);">${durationMins}</strong> 分`;
+      }
+
       modalSelectedRating = 3;
       modalStars.forEach(s => {
         if (parseInt(s.dataset.value) <= 3) {
@@ -824,7 +798,7 @@
       document.getElementById('modal-nap-notes').value = '';
 
       modal.style.display = 'flex';
-      modal.offsetHeight; // force layout reflow
+      modal.offsetHeight;
       modal.style.opacity = '1';
       modalContent.style.transform = 'scale(1)';
     }
@@ -838,10 +812,9 @@
     }
 
     modalSaveBtn.addEventListener('click', () => {
-      stopAlarmAndVibrate();
       hideCompletionModal();
       
-      const duration = Math.round(totalSeconds / 60);
+      const duration = finalNapDuration;
       const location = document.getElementById('modal-nap-location').value;
       const locationSelect = document.getElementById('modal-nap-location');
       const locationName = locationSelect.options[locationSelect.selectedIndex].text;
@@ -863,124 +836,22 @@
       renderLogs();
       initCharts();
       
+      elapsedSeconds = 0;
+      updateStopwatchDisplay();
+      setProgress(0);
+
       alert('昼寝記録を保存しました。');
     });
 
     modalCloseBtn.addEventListener('click', () => {
-      stopAlarmAndVibrate();
       hideCompletionModal();
-    });
-
-    // Background notifications logic
-    function showBackgroundNotification(title, body) {
-      if ('serviceWorker' in navigator && Notification.permission === 'granted') {
-        navigator.serviceWorker.ready.then(registration => {
-          registration.showNotification(title, {
-            body: body,
-            icon: 'icon-192.png',
-            vibrate: [300, 100, 300, 100, 300],
-            tag: 'siesta-nap-timer',
-            renotify: true
-          });
-        });
-      }
-    }
-
-    // Vibration & Notification status panel UI
-    const vibrateBadge = document.getElementById('vibrate-badge');
-    const notificationBadge = document.getElementById('notification-badge');
-    const testVibrateBtn = document.getElementById('test-vibrate-btn');
-    const enableNotificationBtn = document.getElementById('enable-notification-btn');
-
-    function initStatusPanel() {
-      if ('vibrate' in navigator) {
-        vibrateBadge.textContent = '対応';
-        vibrateBadge.className = 'status-badge supported';
-      } else {
-        vibrateBadge.textContent = '非対応';
-        vibrateBadge.className = 'status-badge unsupported';
-      }
-      updateNotificationStatus();
-    }
-
-    function updateNotificationStatus() {
-      if (!('Notification' in window)) {
-        notificationBadge.textContent = '非対応';
-        notificationBadge.className = 'status-badge unsupported';
-        enableNotificationBtn.style.display = 'none';
-        return;
-      }
-
-      if (Notification.permission === 'granted') {
-        notificationBadge.textContent = '許可済';
-        notificationBadge.className = 'status-badge supported';
-        enableNotificationBtn.style.display = 'none';
-      } else if (Notification.permission === 'denied') {
-        notificationBadge.textContent = '拒否';
-        notificationBadge.className = 'status-badge unsupported';
-        enableNotificationBtn.style.display = 'none';
-      } else {
-        notificationBadge.textContent = '未許可';
-        notificationBadge.className = 'status-badge unsupported';
-        enableNotificationBtn.style.display = 'inline-block';
-      }
-    }
-
-    testVibrateBtn.addEventListener('click', () => {
-      if ('vibrate' in navigator) {
-        navigator.vibrate([200, 100, 200]);
-        testVibrateBtn.textContent = '振動中...';
-        setTimeout(() => {
-          testVibrateBtn.textContent = 'テスト';
-        }, 1000);
-      } else {
-        alert('このデバイス/ブラウザはバイブレーション機能に対応していません。');
-      }
-    });
-
-    enableNotificationBtn.addEventListener('click', () => {
-      Notification.requestPermission().then(permission => {
-        updateNotificationStatus();
-        if (permission === 'granted') {
-          showBackgroundNotification('通知が許可されました', '昼寝タイマー終了時にこの通知でお知らせします。');
-        }
-      });
-    });
-
-    function timerFinished() {
-      timerState.textContent = 'DONE!';
-      startBtn.textContent = 'スタート';
-      timerRunning = false;
+      elapsedSeconds = 0;
+      updateStopwatchDisplay();
       setProgress(0);
-      
-      showBackgroundNotification('昼寝タイマー終了', 'すっきりと目覚められましたか？記録を保存しましょう！');
-      playAlarmAndVibrate();
-      showCompletionModal();
-    }
-
-    function resetTimer() {
-      clearInterval(timerInterval);
-      stopAlarmAndVibrate();
-      hideCompletionModal();
-      secondsLeft = totalSeconds;
-      timerRunning = false;
-      timerState.textContent = 'READY';
-      startBtn.textContent = 'スタート';
-      updateTimerDisplay();
-    }
-
-    // Presets
-    document.querySelectorAll('.preset-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        totalSeconds = parseInt(btn.dataset.time);
-        resetTimer();
-      });
     });
 
-    startBtn.addEventListener('click', startTimer);
-    resetBtn.addEventListener('click', resetTimer);
+    startBtn.addEventListener('click', toggleStopwatch);
+    resetBtn.addEventListener('click', cancelStopwatch);
 
     // Star Rating (Orange/Gold Apple Style)
     const stars = document.querySelectorAll('#rating-stars .star');
@@ -1185,9 +1056,8 @@
       });
     }
 
-    resetTimer();
+    stopStopwatch(false);
     renderLogs();
-    initStatusPanel();
 
     // Register Service Worker
     if ('serviceWorker' in navigator) {
@@ -1203,7 +1073,7 @@
     <div class="modal-card" style="width: 340px; padding: 24px 20px;">
       <span class="modal-emoji" style="margin-bottom: 8px;">💤</span>
       <h3 style="font-size: 20px; font-weight: 600; color: var(--ink); margin-bottom: 4px;">お疲れ様でした！</h3>
-      <p style="font-size: 13px; color: var(--body-muted); margin-bottom: 16px;">昼寝タイマーが終了しました。</p>
+      <p id="modal-nap-duration-text" style="font-size: 13px; color: var(--body-muted); margin-bottom: 16px;">昼寝タイマーが終了しました。</p>
       
       <!-- Seamless Record Form -->
       <div style="text-align: left; background-color: var(--canvas-parchment); border-radius: var(--rounded-md); padding: 16px; margin-bottom: 20px; border: 1px solid var(--hairline-soft);">
