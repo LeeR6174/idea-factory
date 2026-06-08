@@ -26,9 +26,10 @@ async def main():
     TITLE: {issue_title}
     BODY: {issue_body}
     
-    Please analyze the repository, write or modify the necessary code to solve this issue.
-    Use your built-in tools to read files, create new files, or edit existing files as needed.
-    Once you have made the necessary changes, provide a brief summary of what you did.
+    CRITICAL INSTRUCTION: You are operating under a strict API rate limit (maximum 5 API requests per minute).
+    You MUST avoid step-by-step exploration. Do NOT read files one by one unless absolutely necessary.
+    Instead, plan your solution and use your built-in tools to create or edit the required files in a SINGLE tool call (or 2 at most).
+    Complete the task as quickly and efficiently as possible, then provide a brief summary of what you did.
     """
 
     # Run the agent
