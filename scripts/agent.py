@@ -51,7 +51,15 @@ async def main():
     - Do not read or write files outside this directory.
     - Write the files in a SINGLE tool call if possible, or at most 2 tool calls, due to strict API limits.
     
-    Please create a modern, beautiful, and fully functional app in `{apps_dir}` based on the issue description.
+    DESIGN SYSTEM INSTRUCTION (Apple Style):
+    You must strictly follow the Apple design system guidelines (summarized below, full spec in `DESIGNS/DESIGN-apple.md`):
+    - Color Palette: Use a clean white (`#ffffff`) and parchment off-white (`#f5f5f7`) background. The ONLY interactive/accent color is Action Blue (`#0066cc`). For text, use Near-Black Ink (`#1d1d1f`) and muted text (`#86868b`).
+    - Typography: Use `Inter` or system-ui fonts. Display headers should have negative letter-spacing (`letter-spacing: -0.015em` to `-0.02em`) and weight 600.
+    - Grid & Spacing: Low density, clean spacing. Space things out generously.
+    - Elevation & Shadows: Flat design. Do NOT use drop-shadows on cards, buttons, or text. Use borders (`1px solid #e5e5e7`) and background color changes for separation.
+    - Shapes & Radius: Use 9999px pill shape (`border-radius: 9999px`) for primary action buttons and search inputs. Use 18px (`border-radius: 18px`) for content cards, and 8px (`border-radius: 8px`) for smaller inputs.
+    
+    Please create a modern, beautiful, and fully functional app in `{apps_dir}` based on the issue description and design rules.
     Once completed, provide a brief summary of what you did.
     """
 
