@@ -1,0 +1,18 @@
+name: Idea Factory
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show Issue
+        run: |
+          echo "Title:"
+          echo "${{ github.event.issue.title }}"
+          echo ""
+          echo "Body:"
+          echo "${{ github.event.issue.body }}"
