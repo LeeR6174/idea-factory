@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>寿司打 週間ランキング</title>
+  
+  <!-- SEO & Mobile Web Apps -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="寿司打ランキング">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="manifest" href="./manifest.json">
+  
+  <!-- Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --primary: #0066cc;
+      --primary-focus: #0071e3;
+      --ink: #1d1d1f;
+      --body: #1d1d1f;
+      --body-muted: #86868b;
+      --divider-soft: #f0f0f0;
+      --hairline: #e0e0e0;
+      --canvas: #ffffff;
+      --canvas-parchment: #f5f5f7;
+      --surface-pearl: #fafafc;
+      --radius-sm: 8px;
+      --radius-md: 11px;
+      --radius-lg: 18px;
+      --radius-pill: 9999px;
+      --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--canvas-parchment);
+      color: var(--body);
+      line-height: 1.47;
+      letter-spacing: -0.011em;
+      font-size: 17px;
+      padding-bottom: 80px;
+    }
+
+    /* Header & Navigation */
+    header {
+      background-color: #000000;
+      color: #ffffff;
+      padding: 12px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 44px;
+    }
+
+    header h1 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.12px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    header h1 span {
+      font-size: 16px;
+    }
+
+    .sub-nav {
+      background-color: rgba(245, 245, 247, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      height: 52px;
+      border-bottom: 1px solid var(--hairline);
+      position: sticky;
+      top: 44px;
+      z-index: 999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+    }
+
+    .sub-nav .title {
+      font-size: 21px;
+      font-weight: 600;
+      letter-spacing: 0.011em;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 16px;
+    }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      font-family: var(--font-family);
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--body-muted);
+      cursor: pointer;
+      padding: 8px 12px;
+      transition: color 0.2s ease, transform 0.1s ease;
+      position: relative;
+    }
+
+    .nav-tab:active {
+      transform: scale(0.95);
+    }
+
+    .nav-tab.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .nav-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 12px;
+      right: 12px;
+      height: 2px;
+      background-color: var(--primary);
+      border-radius: 9999px;
+    }
+
+    /* Layout Containers */
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .view-section {
+      display: none;
+    }
+
+    .view-section.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Typography */
+    h2 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      margin-bottom: 8px;
+    }
+
+    .tagline {
+      font-size: 17px;
+      color: var(--body-muted);
+      margin-bottom: 24px;
+    }
+
+    /* Apple-style Cards */
+    .card {
+      background-color: var(--canvas);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* Grid layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    @media (min-width: 768px) {
+      .dashboard-grid {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+
+    /* Controls & Forms */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--ink);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      height: 44px;
+      background-color: var(--canvas-parchment);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 0 16px;
+      font-family: var(--font-family);
+      font-size: 16px;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+    }
+
+    .radio-pill-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .radio-pill {
+      position: relative;
+      text-align: center;
+    }
+
+    .radio-pill input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .radio-pill label {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 60px;
+      background-color: var(--canvas-parchment);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .radio-pill label .desc {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--body-muted);
+      margin-top: 2px;
+    }
+
+    .radio-pill input:checked + label {
+      background-color: var(--canvas);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .radio-pill input:checked + label .desc {
+      color: var(--primary);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      height: 44px;
+      padding: 0 24px;
+      font-family: var(--font-family);
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: var(--radius-pill);
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.1s ease, background-color 0.2s;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-focus);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-block {
+      display: flex;
+      width: 100%;
+    }
+
+    /* Tables & Lists */
+    .ranking-table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 16px;
+      border-bottom: 1px solid var(--divider-soft);
+    }
+
+    th {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--body-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .rank-cell {
+      font-weight: 700;
+      font-size: 18px;
+      width: 60px;
+    }
+
+    .rank-gold { color: #e6b800; }
+    .rank-silver { color: #a6a6a6; }
+    .rank-bronze { color: #b87333; }
+
+    .score-cell {
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .win-score {
+      color: #eb5757;
+    }
+
+    .loss-score {
+      color: #2f80ed;
+    }
+
+    .meta-cell {
+      font-size: 14px;
+      color: var(--body-muted);
+    }
+
+    /* Date controls */
+    .week-navigation {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .nav-btn {
+      background: var(--canvas);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-pill);
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.1s ease;
+    }
+
+    .nav-btn:active {
+      transform: scale(0.95);
+    }
+
+    .current-week-label {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    /* Course filters overlay */
+    .filter-tabs {
+      display: flex;
+      background-color: var(--divider-soft);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      margin-bottom: 24px;
+    }
+
+    .filter-tab {
+      flex: 1;
+      border: none;
+      background: none;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--body-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.1s;
+    }
+
+    .filter-tab.active {
+      background-color: var(--canvas);
+      color: var(--ink);
+    }
+
+    /* Custom Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background-color: rgba(0, 0, 0, 0.88);
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: var(--radius-pill);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+      z-index: 2000;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Notion Integration Alert */
+    .notion-sync-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-local {
+      background-color: #e5e5e7;
+      color: #1d1d1f;
+    }
+
+    .badge-notion {
+      background-color: #eef6ff;
+      color: #0066cc;
+      border: 1px solid rgba(0, 102, 204, 0.15);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--body-muted);
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: var(--hairline);
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background-color: var(--canvas);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--body-muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 21px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <header>
+    <h1><span>🍣</span> 寿司打 週間ランキング競い合い</h1>
+    <div>
+      <span id="syncStatusBadge" class="notion-sync-badge badge-local">
+        <i class="bi bi-laptop"></i> ローカル保存中
+      </span>
+    </div>
+  </header>
+
+  <!-- Sticky sub navigation bar -->
+  <nav class="sub-nav">
+    <div class="title">今日のお皿</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchView('ranking')"><i class="bi bi-trophy"></i> ランキング</button>
+      <button class="nav-tab" onclick="switchView('register')"><i class="bi bi-plus-circle"></i> スコア登録</button>
+      <button class="nav-tab" onclick="switchView('my-stats')"><i class="bi bi-graph-up"></i> 個人記録</button>
+      <button class="nav-tab" onclick="switchView('notion-config')"><i class="bi bi-gear"></i> 設定</button>
+    </div>
+  </nav>
+
+  <!-- Main space -->
+  <main>
+    
+    <!-- 1. RANKING VIEW -->
+    <section id="view-ranking" class="view-section active">
+      <div class="week-navigation">
+        <button class="nav-btn" onclick="adjustWeek(-1)"><i class="bi bi-chevron-left"></i> 前の週</button>
+        <span class="current-week-label" id="currentWeekRange">--月--日 〜 --月--日</span>
+        <button class="nav-btn" onclick="adjustWeek(1)">次の週 <i class="bi bi-chevron-right"></i></button>
+      </div>
+
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="filterByCourse('3000')">お手軽 3,000円コース</button>
+        <button class="filter-tab" onclick="filterByCourse('5000')">お勧め 5,000円コース</button>
+        <button class="filter-tab" onclick="filterByCourse('10000')">高級 10,000円コース</button>
+      </div>
+
+      <div class="card">
+        <div class="ranking-table-container">
+          <table id="rankingTable">
+            <thead>
+              <tr>
+                <th style="width: 70px;">順位</th>
+                <th>ユーザー名</th>
+                <th style="text-align: right;">収支（得した額）</th>
+                <th style="text-align: right;">速度 (key/秒)</th>
+                <th style="text-align: right;">正確さ (%)</th>
+                <th style="text-align: right; width: 120px;">記録日時</th>
+              </tr>
+            </thead>
+            <tbody id="rankingTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+          <div id="rankingEmptyState" class="empty-state" style="display: none;">
+            <i class="bi bi-award"></i>
+            <p>今週の記録はまだありません。</p>
+            <p style="font-size: 14px; margin-top: 8px;">一番乗りでスコアを登録しましょう！</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. SCORE REGISTER VIEW -->
+    <section id="view-register" class="view-section">
+      <div style="max-width: 600px; margin: 0 auto;">
+        <h2>タイピングスコア登録</h2>
+        <p class="tagline">寿司打の結果を入力してね。同じユーザー名で更新すると自動的に最新スコアを集計します。</p>
+
+        <form id="scoreForm" onsubmit="saveScore(event)" class="card">
+          <div class="form-group">
+            <label for="username">ユーザー名 / ニックネーム</label>
+            <input type="text" id="username" placeholder="例：タイピング名人" required maxlength="15">
+          </div>
+
+          <div class="form-group">
+            <label>コース</label>
+            <div class="radio-pill-group">
+              <div class="radio-pill">
+                <input type="radio" id="course3000" name="course" value="3000" checked>
+                <label for="course3000">
+                  <span>お手軽</span>
+                  <span class="desc">3,000円コース</span>
+                </label>
+              </div>
+              <div class="radio-pill">
+                <input type="radio" id="course5000" name="course" value="5000">
+                <label for="course5000">
+                  <span>お勧め</span>
+                  <span class="desc">5,000円コース</span>
+                </label>
+              </div>
+              <div class="radio-pill">
+                <input type="radio" id="course10000" name="course" value="10000">
+                <label for="course10000">
+                  <span>高級</span>
+                  <span class="desc">10,000円コース</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="profitOrLoss">お得分 or 損した分 (円)</label>
+            <input type="number" id="profitOrLoss" placeholder="例：1500 (得した場合は正の値、損は -300)" required>
+            <span style="font-size: 12px; color: var(--body-muted); display: block; margin-top: 4px;">
+              ※「1,200円得した」なら「1200」、「300円損した」なら「-300」と入力してください。
+            </span>
+          </div>
+
+          <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+              <label for="typingSpeed">キー数/秒 (任意)</label>
+              <input type="number" step="0.1" min="0" max="20" id="typingSpeed" placeholder="例：4.5">
+            </div>
+            <div>
+              <label for="accuracy">正確さ % (任意)</label>
+              <input type="number" step="0.1" min="0" max="100" id="accuracy" placeholder="例：98.5">
+            </div>
+          </div>
+
+          <div style="margin-top: 32px;">
+            <button type="submit" class="btn btn-primary btn-block">記録を保存</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 3. PERSONAL STATISTICS VIEW -->
+    <section id="view-my-stats" class="view-section">
+      <h2>個人スコア推移</h2>
+      <p class="tagline">これまでのタイピング技術の成長を折れ線グラフで確認しよう。</p>
+
+      <div class="card" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+        <div class="form-group" style="margin-bottom: 0; min-width: 180px;">
+          <label for="statsUserSelect">表示するユーザー</label>
+          <select id="statsUserSelect" onchange="renderStatsChart()">
+            <!-- Loaded dynamically -->
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0; min-width: 180px;">
+          <label for="statsCourseSelect">コース</label>
+          <select id="statsCourseSelect" onchange="renderStatsChart()">
+            <option value="3000">お手軽 3,000円コース</option>
+            <option value="5000" selected>お勧め 5,000円コース</option>
+            <option value="10000">高級 10,000円コース</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-label">自己最高お得分</div>
+          <div class="stat-value text-primary" id="statMaxProfit">0円</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">平均お得分</div>
+          <div class="stat-value" id="statAvgProfit">0円</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">挑戦回数</div>
+          <div class="stat-value" id="statCount">0回</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <canvas id="statsChart" style="width: 100%; height: 350px;"></canvas>
+      </div>
+    </section>
+
+    <!-- 4. CONFIGURATION VIEW (NOTION SYNC OPTIONS) -->
+    <section id="view-notion-config" class="view-section">
+      <div style="max-width: 600px; margin: 0 auto;">
+        <h2>Notion連携 & オプション</h2>
+        <p class="tagline">ローカル保存のほか、オプションでチーム共有用にNotionデータベースと直接連携できます。</p>
+
+        <div class="card">
+          <div class="form-group">
+            <label for="notionEnable">連携ステータス</label>
+            <select id="notionEnable" onchange="toggleNotionFields()">
+              <option value="local">サーバーを使用しない（ブラウザのみに保存）</option>
+              <option value="notion">Notion API 連携を有効にする</option>
+            </select>
+          </div>
+
+          <div id="notionFields" style="display: none;">
+            <div class="form-group">
+              <label for="notionToken">Notion インテグレーション秘密トークン (Internal Integration Token)</label>
+              <input type="password" id="notionToken" placeholder="secret_...">
+              <span style="font-size: 12px; color: var(--body-muted); display: block; margin-top: 4px;">
+                Notionで作成したマイインテグレーションの「シークレット」を入力します。
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label for="notionDbId">データベース ID (Database ID)</label>
+              <input type="text" id="notionDbId" placeholder="例：32桁の文字列">
+              <span style="font-size: 12px; color: var(--body-muted); display: block; margin-top: 4px;">
+                共有するデータベースのURLに含まれる32桁の英数字IDを入力します。
+              </span>
+            </div>
+
+            <div style="background-color: #fff9e6; border-left: 4px solid #ffcc00; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 13px; color: #665200;">
+              <strong>⚠️ 注意事項：</strong><br>
+              クライアント側のブラウザから直接、Notion APIをリクエストする際にはブラウザのセキュリティ上の制約（CORS）があります。CORS制限を緩和するためのリバースプロキシを使用するか、もしくはCORS回避用ブラウザ拡張機能を一時的に有効にする必要があります。<br><br>
+              ※本設定が有効な場合、新しいスコア登録時にNotionDBへの追加を試みます。連携に失敗した場合でもローカルデータ（LocalStorage）には自動的に保存・フォールバックされます。
+            </div>
+          </div>
+
+          <div style="margin-top: 24px; display: flex; gap: 12px;">
+            <button class="btn btn-primary" onclick="saveConfig()">設定を保存</button>
+            <button class="btn btn-secondary" onclick="resetDemoData()">デモデータを初期登録</button>
+          </div>
+        </div>
+
+        <div class="card" style="border: 1px dashed var(--hairline); background-color: var(--surface-pearl);">
+          <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 8px;">推奨NotionDBプロパティ構成</h3>
+          <p style="font-size: 13px; color: var(--body-muted); margin-bottom: 12px;">
+            Notion連携を使用する場合は、データベースを次のカラム（プロパティ）名で作成してください。
+          </p>
+          <ul style="font-size: 13px; padding-left: 20px; line-height: 1.6;">
+            <li><strong>名前</strong> (Title) ※デフォルトのカラム：「ユーザー名」を保存</li>
+            <li><strong>スコア</strong> (Number) : 「お得分金額」</li>
+            <li><strong>コース</strong> (Select or RichText) : 「3000 / 5000 / 10000」</li>
+            <li><strong>キー数</strong> (Number) : 秒あたりのタイピング速度 (任意)</li>
+            <li><strong>正確さ</strong> (Number) : 正確さ(%) (任意)</li>
+            <li><strong>記録日時</strong> (Date) : スコアの登録日時</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Navigation bar / Floating prompt on small screens -->
+  <div id="toast" class="toast">
+    <i class="bi bi-info-circle-fill"></i>
+    <span id="toastText">メッセージがここに表示されます</span>
+  </div>
+
+  <script>
+    // App State
+    let state = {
+      scores: [],
+      currentTab: 'ranking',
+      currentCourse: '5000',
+      currentDate: new Date(), // Used to select active week for ranking
+      config: {
+        notionEnable: 'local',
+        notionToken: '',
+        notionDbId: ''
+      }
+    };
+
+    let chartInstance = null;
+
+    // Default mock data to populate ranking immediately with rich, engaging metrics
+    const DEMO_SCORES = [
+      // Last week scores (to show historical trend)
+      { id: 'm1', username: 'Hikari', course: '5000', profitOrLoss: 1240, typingSpeed: 4.8, accuracy: 96.5, timestamp: getPastDateOffset(-9) },
+      { id: 'm2', username: 'Taro', course: '5000', profitOrLoss: 890, typingSpeed: 3.9, accuracy: 93.1, timestamp: getPastDateOffset(-8) },
+      { id: 'm3', username: 'Kenji', course: '5000', profitOrLoss: 1650, typingSpeed: 5.2, accuracy: 97.4, timestamp: getPastDateOffset(-7) },
+      { id: 'm4', username: 'Hikari', course: '10000', profitOrLoss: 2800, typingSpeed: 5.0, accuracy: 96.2, timestamp: getPastDateOffset(-6) },
+      
+      // Current week scores
+      { id: 'd1', username: 'Hikari', course: '5000', profitOrLoss: 2150, typingSpeed: 5.4, accuracy: 98.1, timestamp: getPastDateOffset(-3) },
+      { id: 'd2', username: 'Taro', course: '5000', profitOrLoss: 1450, typingSpeed: 4.2, accuracy: 95.0, timestamp: getPastDateOffset(-2) },
+      { id: 'd3', username: 'Kenji', course: '5000', profitOrLoss: 2980, typingSpeed: 5.9, accuracy: 98.5, timestamp: getPastDateOffset(-1) },
+      { id: 'd4', username: 'You', course: '5000', profitOrLoss: 650, typingSpeed: 3.5, accuracy: 91.0, timestamp: getPastDateOffset(0) },
+
+      { id: 'd5', username: 'Hikari', course: '3000', profitOrLoss: 980, typingSpeed: 5.1, accuracy: 97.5, timestamp: getPastDateOffset(-3) },
+      { id: 'd6', username: 'Taro', course: '3000', profitOrLoss: 450, typingSpeed: 3.8, accuracy: 92.4, timestamp: getPastDateOffset(-2) },
+      { id: 'd7', username: 'Kenji', course: '10000', profitOrLoss: 4680, typingSpeed: 6.1, accuracy: 99.1, timestamp: getPastDateOffset(-1) },
+      { id: 'd8', username: 'Hikari', course: '10000', profitOrLoss: 3900, typingSpeed: 5.6, accuracy: 97.9, timestamp: getPastDateOffset(0) }
+    ];
+
+    function getPastDateOffset(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.getTime();
+    }
+
+    // Initialize application on load
+    window.addEventListener('DOMContentLoaded', () => {
+      // Register Service Worker for PWA compliance
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then((reg) => console.log('Serviceworker registered successfully.', reg))
+          .catch((err) => console.warn('Serviceworker registration failed.', err));
+      }
+
+      loadData();
+      renderAll();
+      
+      // Fill register username from latest record
+      setLastRegisteredUsername();
+    });
+
+    // Load Data from LocalStorage
+    function loadData() {
+      // Config
+      const localConfig = localStorage.getItem('sushida_ranking_config');
+      if (localConfig) {
+        state.config = JSON.parse(localConfig);
+      }
+
+      // Scores
+      const localScores = localStorage.getItem('sushida_ranking_scores');
+      if (localScores) {
+        state.scores = JSON.parse(localScores);
+      } else {
+        // First run: load engaging demo scores
+        state.scores = [...DEMO_SCORES];
+        localStorage.setItem('sushida_ranking_scores', JSON.stringify(state.scores));
+      }
+
+      updateSyncBadge();
+    }
+
+    function updateSyncBadge() {
+      const badge = document.getElementById('syncStatusBadge');
+      if (badge) {
+        if (state.config.notionEnable === 'notion') {
+          badge.className = 'notion-sync-badge badge-notion';
+          badge.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Notion 連携モード';
+        } else {
+          badge.className = 'notion-sync-badge badge-local';
+          badge.innerHTML = '<i class="bi bi-laptop"></i> ローカル保存中';
+        }
+      }
+    }
+
+    // Set last registered username in input
+    function setLastRegisteredUsername() {
+      if (state.scores.length > 0) {
+        const sorted = [...state.scores].sort((a, b) => b.timestamp - a.timestamp);
+        const myLatest = sorted.find(s => s.username !== 'Hikari' && s.username !== 'Taro' && s.username !== 'Kenji');
+        const defaultName = myLatest ? myLatest.username : '';
+        document.getElementById('username').value = defaultName;
+      }
+    }
+
+    // View Routing
+    function switchView(tabKey) {
+      state.currentTab = tabKey;
+      
+      // Update nav class
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick').includes(tabKey)) {
+          btn.classList.add('active');
+        }
+      });
+
+      // Update sections display
+      document.querySelectorAll('.view-section').forEach(sec => {
+        sec.classList.remove('active');
+      });
+      document.getElementById(`view-${tabKey}`).classList.add('active');
+
+      // Refresh data render specifically for targeted tab
+      if (tabKey === 'ranking') {
+        renderRanking();
+      } else if (tabKey === 'my-stats') {
+        renderStats();
+      } else if (tabKey === 'notion-config') {
+        loadConfigForm();
+      }
+    }
+
+    // Date/Week helper functions
+    function getWeekRange(date) {
+      const current = new Date(date);
+      // Week starts from Monday
+      const day = current.getDay();
+      const diff = current.getDate() - day + (day === 0 ? -6 : 1); 
+      const monday = new Date(current.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+
+      return { start: monday, end: sunday };
+    }
+
+    function formatMonthDay(date) {
+      const m = date.getMonth() + 1;
+      const d = date.getDate();
+      return `${m}月${d}日`;
+    }
+
+    function adjustWeek(offset) {
+      const currentRange = getWeekRange(state.currentDate);
+      const nextDate = new Date(currentRange.start);
+      nextDate.setDate(nextDate.getDate() + (offset * 7));
+      state.currentDate = nextDate;
+      renderRanking();
+    }
+
+    // Filter functions
+    function filterByCourse(course) {
+      state.currentCourse = course;
+      document.querySelectorAll('.filter-tab').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick').includes(course)) {
+          btn.classList.add('active');
+        }
+      });
+      renderRanking();
+    }
+
+    // Main Rendering for all tabs
+    function renderAll() {
+      renderRanking();
+      renderStats();
+    }
+
+    // 1. Rendering ranking list
+    function renderRanking() {
+      const range = getWeekRange(state.currentDate);
+      document.getElementById('currentWeekRange').innerText = `${formatMonthDay(range.start)} (月) 〜 ${formatMonthDay(range.end)} (日)`;
+
+      const tableBody = document.getElementById('rankingTableBody');
+      const emptyState = document.getElementById('rankingEmptyState');
+      const table = document.getElementById('rankingTable');
+
+      // Filter scores in target week & target course
+      const weekScores = state.scores.filter(entry => {
+        const t = entry.timestamp;
+        return t >= range.start.getTime() && t <= range.end.getTime() && entry.course === state.currentCourse;
+      });
+
+      // To find the best score per user in this week
+      const bestUserScores = {};
+      weekScores.forEach(item => {
+        if (!bestUserScores[item.username] || bestUserScores[item.username].profitOrLoss < item.profitOrLoss) {
+          bestUserScores[item.username] = item;
+        }
+      });
+
+      const rankingList = Object.values(bestUserScores);
+      // Sort desc by profitOrLoss
+      rankingList.sort((a, b) => b.profitOrLoss - a.profitOrLoss);
+
+      tableBody.innerHTML = '';
+
+      if (rankingList.length === 0) {
+        table.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      table.style.display = 'table';
+      emptyState.style.display = 'none';
+
+      rankingList.forEach((entry, idx) => {
+        const rank = idx + 1;
+        let rankDisplay = rank;
+        if (rank === 1) rankDisplay = '🥇';
+        else if (rank === 2) rankDisplay = '🥈';
+        else if (rank === 3) rankDisplay = '🥉';
+
+        let rankClass = '';
+        if (rank === 1) rankClass = 'rank-gold';
+        else if (rank === 2) rankClass = 'rank-silver';
+        else if (rank === 3) rankClass = 'rank-bronze';
+
+        const row = document.createElement('tr');
+        
+        const dateStr = new Date(entry.timestamp).toLocaleDateString('ja-JP', {
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        const profitStr = entry.profitOrLoss >= 0 ? `+${entry.profitOrLoss.toLocaleString()}` : entry.profitOrLoss.toLocaleString();
+        const profitClass = entry.profitOrLoss >= 0 ? 'win-score' : 'loss-score';
+
+        row.innerHTML = `
+          <td class="rank-cell ${rankClass}">${rankDisplay}</td>
+          <td style="font-weight: 600;">${escapeHTML(entry.username)}</td>
+          <td class="score-cell ${profitClass}">${profitStr}円</td>
+          <td style="text-align: right; font-feature-settings: 'tnum' 1;">${entry.typingSpeed ? entry.typingSpeed.toFixed(1) : '-'}</td>
+          <td style="text-align: right; font-feature-settings: 'tnum' 1;">${entry.accuracy ? entry.accuracy.toFixed(1) + '%' : '-'}</td>
+          <td class="meta-cell" style="text-align: right;">${dateStr}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    // 2. Score Registration
+    async function saveScore(event) {
+      event.preventDefault();
+      
+      const username = document.getElementById('username').value.trim();
+      const course = document.querySelector('input[name="course"]:checked').value;
+      const profitOrLoss = parseInt(document.getElementById('profitOrLoss').value, 10);
+      const speedInput = document.getElementById('typingSpeed').value;
+      const accuracyInput = document.getElementById('accuracy').value;
+
+      const typingSpeed = speedInput !== '' ? parseFloat(speedInput) : null;
+      const accuracy = accuracyInput !== '' ? parseFloat(accuracyInput) : null;
+
+      if (!username) {
+        showToast('ユーザー名を入力してください');
+        return;
+      }
+
+      const newEntry = {
+        id: 's_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        username,
+        course,
+        profitOrLoss,
+        typingSpeed,
+        accuracy,
+        timestamp: Date.now()
+      };
+
+      // Save locally first
+      state.scores.push(newEntry);
+      localStorage.setItem('sushida_ranking_scores', JSON.stringify(state.scores));
+
+      let notionSucceeded = false;
+      if (state.config.notionEnable === 'notion') {
+        showToast('NotionDBへデータ送信中...');
+        notionSucceeded = await saveToNotionDB(newEntry);
+      }
+
+      if (state.config.notionEnable === 'notion') {
+        if (notionSucceeded) {
+          showToast('Notionとローカルに登録されました！🍣');
+        } else {
+          showToast('Notion送信に失敗（CORS/認証エラーなど）。ローカルにのみ保存しました');
+        }
+      } else {
+        showToast('スコアを登録しました！🍣');
+      }
+
+      // Reset form fields except username
+      document.getElementById('profitOrLoss').value = '';
+      document.getElementById('typingSpeed').value = '';
+      document.getElementById('accuracy').value = '';
+
+      // Set active date to current to reveal score
+      state.currentDate = new Date();
+      state.currentCourse = course;
+
+      // Update ranking page course filters state before showing
+      filterByCourse(course);
+      switchView('ranking');
+    }
+
+    // Notion Integration Request Sender
+    async function saveToNotionDB(entry) {
+      const { notionToken, notionDbId } = state.config;
+      if (!notionToken || !notionDbId) return false;
+
+      // Formulate body for Notion API v1 database insertion
+      const notionBody = {
+        parent: { database_id: notionDbId },
+        properties: {
+          "名前": {
+            title: [{ text: { content: entry.username } }]
+          },
+          "スコア": {
+            number: entry.profitOrLoss
+          },
+          "コース": {
+            select: { name: entry.course + "円コース" }
+          },
+          "記録日時": {
+            date: { start: new Date(entry.timestamp).toISOString() }
+          }
+        }
+      };
+
+      if (entry.typingSpeed !== null) {
+        notionBody.properties["キー数"] = { number: entry.typingSpeed };
+      }
+      if (entry.accuracy !== null) {
+        notionBody.properties["正確さ"] = { number: entry.accuracy };
+      }
+
+      try {
+        const response = await fetch(`https://api.notion.com/v1/pages`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${notionToken}`,
+            'Content-Type': 'application/json',
+            'Notion-Version': '2022-06-28'
+          },
+          body: JSON.stringify(notionBody)
+        });
+
+        return response.ok;
+      } catch (err) {
+        console.error('Notion transmission error (this is likely a CORS validation blocks on secure direct APIs):', err);
+        return false;
+      }
+    }
+
+    // 3. Stats section
+    function renderStats() {
+      const select = document.getElementById('statsUserSelect');
+      const currentSelected = select.value;
+
+      // Extract unique list of usernames from recorded history
+      const users = [...new Set(state.scores.map(s => s.username))];
+      
+      select.innerHTML = '';
+      if (users.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.innerText = '登録データなし';
+        select.appendChild(opt);
+        return;
+      }
+
+      users.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u;
+        opt.innerText = u;
+        if (u === currentSelected) {
+          opt.selected = true;
+        }
+        select.appendChild(opt);
+      });
+
+      renderStatsChart();
+    }
+
+    function renderStatsChart() {
+      const username = document.getElementById('statsUserSelect').value;
+      const course = document.getElementById('statsCourseSelect').value;
+
+      if (!username) {
+        document.getElementById('statMaxProfit').innerText = '0円';
+        document.getElementById('statAvgProfit').innerText = '0円';
+        document.getElementById('statCount').innerText = '0回';
+        return;
+      }
+
+      // Filter and sort scores for this specific user
+      const userScores = state.scores
+        .filter(s => s.username === username && s.course === course)
+        .sort((a, b) => a.timestamp - b.timestamp);
+
+      // Simple metrics
+      let maxProfit = 0;
+      let totalProfit = 0;
+      const count = userScores.length;
+
+      if (count > 0) {
+        maxProfit = Math.max(...userScores.map(s => s.profitOrLoss));
+        totalProfit = userScores.reduce((sum, s) => sum + s.profitOrLoss, 0);
+      }
+
+      document.getElementById('statMaxProfit').innerText = `${maxProfit.toLocaleString()}円`;
+      document.getElementById('statAvgProfit').innerText = `${count > 0 ? Math.round(totalProfit / count).toLocaleString() : 0}円`;
+      document.getElementById('statCount').innerText = `${count}回`;
+
+      const ctx = document.getElementById('statsChart').getContext('2d');
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      const labels = userScores.map(s => {
+        const d = new Date(s.timestamp);
+        return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+      });
+      const dataPoints = userScores.map(s => s.profitOrLoss);
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: `${username} のお得分推移 (円)`,
+            data: dataPoints,
+            borderColor: '#0066cc',
+            backgroundColor: 'rgba(0, 102, 204, 0.05)',
+            borderWidth: 2,
+            tension: 0.15,
+            fill: true,
+            pointBackgroundColor: '#0066cc',
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              grid: {
+                color: '#f0f0f0'
+              },
+              ticks: {
+                callback: function(val) {
+                  return val.toLocaleString() + '円';
+                },
+                font: {
+                  family: varColor('--font-family')
+                }
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                font: {
+                  family: varColor('--font-family'),
+                  size: 11
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function varColor(variableName) {
+      return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
+    }
+
+    // 4. Configuration tab control
+    function loadConfigForm() {
+      document.getElementById('notionEnable').value = state.config.notionEnable;
+      document.getElementById('notionToken').value = state.config.notionToken;
+      document.getElementById('notionDbId').value = state.config.notionDbId;
+      toggleNotionFields();
+    }
+
+    function toggleNotionFields() {
+      const isNotion = document.getElementById('notionEnable').value === 'notion';
+      document.getElementById('notionFields').style.display = isNotion ? 'block' : 'none';
+    }
+
+    function saveConfig() {
+      state.config.notionEnable = document.getElementById('notionEnable').value;
+      state.config.notionToken = document.getElementById('notionToken').value.trim();
+      state.config.notionDbId = document.getElementById('notionDbId').value.trim();
+
+      localStorage.setItem('sushida_ranking_config', JSON.stringify(state.config));
+      updateSyncBadge();
+      showToast('設定を保存しました');
+    }
+
+    function resetDemoData() {
+      if (confirm('登録されている現在データを削除し、デモ履歴データで上書きします。よろしいですか？')) {
+        state.scores = [...DEMO_SCORES];
+        localStorage.setItem('sushida_ranking_scores', JSON.stringify(state.scores));
+        showToast('デモを再初期化しました');
+        renderAll();
+        switchView('ranking');
+      }
+    }
+
+    // Show Toast Message alert
+    let toastTimeout;
+    function showToast(text) {
+      const toast = document.getElementById('toast');
+      const toastText = document.getElementById('toastText');
+      
+      toastText.innerText = text;
+      toast.classList.add('show');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+  </script>
+</body>
+</html>
